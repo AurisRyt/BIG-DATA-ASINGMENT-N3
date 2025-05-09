@@ -1,0 +1,173 @@
+version: '3.8'
+
+services:
+  # Config Servers (Replica Set)
+  config-server-1:
+    image: mongo:latest
+    container_name: config-server-1
+    command: mongod --configsvr --replSet configserver --port 27017
+    volumes:
+      - config-server-1:/data/db
+    networks:
+      - mongo-network
+    mem_limit: 512M
+    cpus: 0.5
+
+  config-server-2:
+    image: mongo:latest
+    container_name: config-server-2
+    command: mongod --configsvr --replSet configserver --port 27017
+    volumes:
+      - config-server-2:/data/db
+    networks:
+      - mongo-network
+    mem_limit: 512M
+    cpus: 0.5
+
+  config-server-3:
+    image: mongo:latest
+    container_name: config-server-3
+    command: mongod --configsvr --replSet configserver --port 27017
+    volumes:
+      - config-server-3:/data/db
+    networks:
+      - mongo-network
+    mem_limit: 512M
+    cpus: 0.5
+
+  # Shard 1 (Replica Set)
+  shard1-1:
+    image: mongo:latest
+    container_name: shard1-1
+    command: mongod --shardsvr --replSet shard1 --port 27017
+    volumes:
+      - shard1-1:/data/db
+    networks:
+      - mongo-network
+    mem_limit: 1G
+    cpus: 0.8
+
+  shard1-2:
+    image: mongo:latest
+    container_name: shard1-2
+    command: mongod --shardsvr --replSet shard1 --port 27017
+    volumes:
+      - shard1-2:/data/db
+    networks:
+      - mongo-network
+    mem_limit: 1G
+    cpus: 0.8
+
+  shard1-3:
+    image: mongo:latest
+    container_name: shard1-3
+    command: mongod --shardsvr --replSet shard1 --port 27017
+    volumes:
+      - shard1-3:/data/db
+    networks:
+      - mongo-network
+    mem_limit: 1G
+    cpus: 0.8
+
+  # Shard 2 (Replica Set)
+  shard2-1:
+    image: mongo:latest
+    container_name: shard2-1
+    command: mongod --shardsvr --replSet shard2 --port 27017
+    volumes:
+      - shard2-1:/data/db
+    networks:
+      - mongo-network
+    mem_limit: 1G
+    cpus: 0.8
+
+  shard2-2:
+    image: mongo:latest
+    container_name: shard2-2
+    command: mongod --shardsvr --replSet shard2 --port 27017
+    volumes:
+      - shard2-2:/data/db
+    networks:
+      - mongo-network
+    mem_limit: 1G
+    cpus: 0.8
+
+  shard2-3:
+    image: mongo:latest
+    container_name: shard2-3
+    command: mongod --shardsvr --replSet shard2 --port 27017
+    volumes:
+      - shard2-3:/data/db
+    networks:
+      - mongo-network
+    mem_limit: 1G
+    cpus: 0.8
+
+  # mongos router
+  mongos:
+    image: mongo:latest
+    container_name: mongos
+    command: mongos --configdb configserver/config-server-1:27017,config-server-2:27017,config-server-3:27017 --bind_ip_all --port 27017
+    ports:
+      - "27017:27017"
+    depends_on:
+      - config-server-1
+      - config-server-2
+      - config-server-3
+    networks:
+      - mongo-network
+    mem_limit: 768M
+    cpus: 0.7
+
+  # Initialization script
+  mongo-init:
+    image: mongo:6.0.5
+    container_name: mongo-init
+    depends_on:
+      - mongos
+    volumes:
+      - ./scripts:/scripts
+    networks:
+      - mongo-network
+    entrypoint: ["bash", "/scripts/initcluster.sh"]
+
+  # Python Worker Container
+  python-worker:
+    image: python:3.9
+    container_name: python-worker
+    volumes:
+      - .:/app
+    working_dir: /app
+    depends_on:
+      - mongos
+    networks:
+      - mongo-network
+    command: bash -c "pip install pandas pymongo tqdm matplotlib numpy && tail -f /dev/null"
+    mem_limit: 1G
+    cpus: 1.5
+
+  # Mongosh CLI client
+  mongosh:
+    image: mongo:latest
+    container_name: mongosh
+    depends_on:
+      - mongos
+    networks:
+      - mongo-network
+    stdin_open: true
+    tty: true
+
+volumes:
+  config-server-1:
+  config-server-2:
+  config-server-3:
+  shard1-1:
+  shard1-2:
+  shard1-3:
+  shard2-1:
+  shard2-2:
+  shard2-3:
+
+networks:
+  mongo-network:
+    driver: bridge
