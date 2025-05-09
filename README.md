@@ -1,8 +1,8 @@
-# BIG-DATA-ASINGMENT-N3//
+# BIG-DATA-ASINGMENT-N3
 
-MongoDB Sharded Cluster//
+MongoDB Sharded Cluster
 
-Overview//
+Overview
 
 This project implements a fault-tolerant MongoDB sharded cluster using Docker containers. The system processes vessel tracking data, filters noise, and analyzes time differences between data points.
 
